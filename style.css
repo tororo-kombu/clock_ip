@@ -1,0 +1,84 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #000;
+    color: var(--mainColor);
+    font-family: Arial, Helvetica, sans-serif;
+
+    width: 100vw;
+    height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.clock-container {
+    text-align: center;
+}
+
+#date {
+    font-size: clamp(24px, 3vw, 48px);
+    margin-bottom: 20px;
+    letter-spacing: 0.1em;
+
+    font-family: "Google Sans Flex", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+    font-variation-settings:
+        "slnt" 0,
+        "wdth" 100,
+        "GRAD" 50,
+        "ROND" 100;
+}
+
+#clock {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.1em;
+    margin-top: -40px;
+    position: relative;
+
+    font-weight: bold;
+    line-height: 1;
+
+    font-family: "Google Sans Flex", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 200;
+    font-style: normal;
+
+    height: 160px;
+}
+
+#hm {
+    position: absolute;
+    left: -5px;
+    bottom: 0;
+    font-size: clamp(80px, 15vw, 240px);
+
+    font-weight: 500;
+    font-variation-settings:
+        "slnt" 0,
+        "wdth" 40,
+        "GRAD" 50,
+        "ROND" 100;
+}
+
+#sec {
+    position: absolute;
+    right: 0px;
+    bottom: 5px;
+    font-size: clamp(100px, 5vw, 80px);
+
+    font-variation-settings:
+        "slnt" 0,
+        "wdth" 30,
+        "GRAD" 50,
+        "ROND" 100;
+}
