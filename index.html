@@ -1,25 +1,179 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-<meta name="viewport" content="width=1000">
-    <title>デジタル時計</title>
-    <link rel="stylesheet" href="style.css">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,50,0..100&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>7セグ時計</title>
+<style>
+  :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); color-scheme: dark; }
+  html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  #stage {
+    --c: hsl(0 100% 55%);
+    width: min(100vw, calc(100dvh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    container-type: size;
+    background: #000;
+    color: var(--c);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3.5cqw;
+    font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    transition: color .8s;
+  }
+  .row { display: flex; align-items: center; justify-content: center; gap: 1cqw; }
+  .digit { height: 10cqw; width: 6cqw; }
+  .time .digit { height: 20cqw; width: 12cqw; }
+  .time { gap: 1.6cqw; }
+  .sec { display: flex; gap: 1cqw; align-self: flex-end; }
+  .time .sec .digit { height: 9cqw; width: 5.4cqw; }
+  .digit path { fill: currentColor; opacity: .18; transition: opacity .15s; }
+  .digit path.on { opacity: 1; filter: drop-shadow(0 0 2px currentColor); }
+  .unit { font-size: 4.4cqw; margin: 0 0cqw 0 .2cqw; font-weight: 700; }
+  .week { gap: 1cqw; margin-left: 3cqw; }
+  .week span { opacity: .1; }
+  .week span.on { opacity: 1; text-shadow: 0 0 .8cqw currentColor; }
+  .colon { width: 3cqw; height: 20cqw; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5cqw;filter: drop-shadow(0 0 2px currentColor)}
+  .colon i { width: 1.8cqw; height: 1.8cqw; background: currentColor; display: block; }
+</style>
 </head>
 <body>
+<div id="stage">
+  <div class="row" id="date"></div>
+  <div class="row time" id="time"></div>
+</div>
+<script>
+(function () {
+  // 各数字の点灯セグメント (a b c d e f g)
+  var MAP = ["abcdef","bc","abdeg","abcdg","bcfg","acdfg","acdefg","abc","abcdefg","abcdfg"];
+  var PATHS = {
+    a: "M12 10 L18 4 L42 4 L48 10 L42 16 L18 16 Z",
+    g: "M12 50 L18 44 L42 44 L48 50 L42 56 L18 56 Z",
+    d: "M12 90 L18 84 L42 84 L48 90 L42 96 L18 96 Z",
+    f: "M8 13 L14 19 L14 41 L8 47 L2 41 L2 19 Z",
+    b: "M52 13 L58 19 L58 41 L52 47 L46 41 L46 19 Z",
+    e: "M8 53 L14 59 L14 81 L8 87 L2 81 L2 59 Z",
+    c: "M52 53 L58 59 L58 81 L52 87 L46 81 L46 59 Z"
+  };
+  var NS = "http://www.w3.org/2000/svg";
 
-    <div class="clock-container">
-        <div id="date"></div>
-        <div id="clock">
-            <span id="hm">00:00</span>
-            <span id="sec">00</span>
-        </div>
-    </div>
+  function makeDigit(parent) {
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 60 100");
+    svg.setAttribute("class", "digit");
+    var segs = {};
+    "abcdefg".split("").forEach(function (k) {
+      var p = document.createElementNS(NS, "path");
+      p.setAttribute("d", PATHS[k]);
+      svg.appendChild(p);
+      segs[k] = p;
+    });
+    parent.appendChild(svg);
+    return {
+      set: function (n) {
+        var on = MAP[n];
+        for (var k in segs) segs[k].classList.toggle("on", on.indexOf(k) >= 0);
+      }
+    };
+  }
+  // 16セグメント
+  var P16 = {
+    a1: "M12 10 L18 4 L28 4 L28 16 L18 16 Z",
+    a2: "M32 4 L42 4 L48 10 L42 16 L32 16 Z",
+    g1: "M12 50 L18 44 L28 44 L28 56 L18 56 Z",
+    g2: "M32 44 L42 44 L48 50 L42 56 L32 56 Z",
+    d1: "M12 90 L18 84 L28 84 L28 96 L18 96 Z",
+    d2: "M32 84 L42 84 L48 90 L42 96 L32 96 Z",
+    f: PATHS.f, b: PATHS.b, e: PATHS.e, c: PATHS.c,
+    i: "M26 19 L34 19 L34 41 L26 41 Z",
+    l: "M26 59 L34 59 L34 81 L26 81 Z",
+    h: "M16 19 L22 19 L28 40 L22 40 Z",
+    j: "M44 19 L38 19 L32 40 L38 40 Z",
+    k: "M22 60 L28 60 L22 81 L16 81 Z",
+    m: "M32 60 L38 60 L44 81 L38 81 Z"
+  };
+  var M16 = {
+    S: "a1 a2 f g1 g2 c d1 d2", U: "b c d1 d2 e f", N: "b c e f h m",
+    M: "b c e f h j", O: "a1 a2 b c d1 d2 e f", T: "a1 a2 i l",
+    E: "a1 a2 d1 d2 e f g1", W: "b c e f k m", D: "a1 a2 b c d1 d2 i l",
+    H: "b c e f g1 g2", F: "a1 a2 e f g1 g2", R: "a1 a2 b e f g1 g2 m",
+    I: "a1 a2 d1 d2 i l", A: "a1 a2 b c e f g1 g2"
+  };
+  function makeChar16(parent) {
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 60 100");
+    svg.setAttribute("class", "digit");
+    var segs = {};
+    Object.keys(P16).forEach(function (k) {
+      var p = document.createElementNS(NS, "path");
+      p.setAttribute("d", P16[k]);
+      svg.appendChild(p);
+      segs[k] = p;
+    });
+    parent.appendChild(svg);
+    return {
+      set: function (ch) {
+        var on = (M16[ch] || "").split(" ");
+        for (var k in segs) segs[k].classList.toggle("on", on.indexOf(k) >= 0);
+      }
+    };
+  }
+  function unit(parent, text) {
+    var s = document.createElement("span");
+    s.className = "unit"; s.textContent = text;
+    parent.appendChild(s);
+  }
+  function colon(parent) {
+    var d = document.createElement("div");
+    d.className = "colon"; d.innerHTML = "<i></i><i></i>";
+    parent.appendChild(d);
+  }
+  function group(parent, n) {
+    var a = [];
+    for (var i = 0; i < n; i++) a.push(makeDigit(parent));
+    return a;
+  }
 
-    <script src="script.js"></script>
+  var dateEl = document.getElementById("date");
+  var timeEl = document.getElementById("time");
+
+  var M = group(dateEl, 2); unit(dateEl, "/");
+  var D = group(dateEl, 2); unit(dateEl, "");
+
+  var weekEl = document.createElement("div"); weekEl.className = "row week"; dateEl.appendChild(weekEl);
+  var DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  var W = [makeChar16(weekEl), makeChar16(weekEl), makeChar16(weekEl)];
+
+  var H = group(timeEl, 2); colon(timeEl);
+  var Mi = group(timeEl, 2); colon(timeEl);
+  var secEl = document.createElement("div"); secEl.className = "sec"; timeEl.appendChild(secEl);
+  var S = group(secEl, 2);
+
+  function put(arr, v) {
+    var s = String(v);
+    while (s.length < arr.length) s = "0" + s;
+    arr.forEach(function (d, i) { d.set(+s[i]); });
+  }
+
+  var stage = document.getElementById("stage");
+  var lastWd = -1, lastHour = -1;
+
+  function tick() {
+    var t = new Date();
+    put(M, t.getMonth() + 1); put(D, t.getDate());
+    put(H, t.getHours()); put(Mi, t.getMinutes()); put(S, t.getSeconds());
+    if (t.getDay() !== lastWd) {
+      lastWd = t.getDay();
+      W.forEach(function (c, i) { c.set(DAYS[lastWd][i]); });
+    }
+    if (t.getHours() !== lastHour) {
+      lastHour = t.getHours();
+      // 時間ごとに色相を変更 (24色)
+      stage.style.setProperty("--c", "hsl(" + (lastHour * 15) + " 100% 55%)");
+    }
+  }
+  tick();
+  setInterval(tick, 250);
+})();
+</script>
 </body>
 </html>
