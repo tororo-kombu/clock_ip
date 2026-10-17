@@ -5,35 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>7セグ時計</title>
 <style>
-  :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); color-scheme: dark; }
-  html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
-  body { display: grid; place-items: center; }
+  /* 1rem = 16:9領域の横幅の1% (JSで設定。未実行時の代替は1vw) */
+  html { font-size: 1vw; height: 100%; background: #000; }
+  body { margin: 0; height: 100%; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
   #stage {
-    --c: hsl(0 100% 55%);
-    width: min(100vw, calc(100dvh * 16 / 9));
-    aspect-ratio: 16 / 9;
-    container-type: size;
-    background: #000;
-    color: var(--c);
+    width: 100rem; height: 56.25rem; background: #000; color: hsl(0, 100%, 55%);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3.5cqw;
     font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
-    transition: color .8s;
+    -webkit-transition: color .8s; transition: color .8s;
   }
-  .row { display: flex; align-items: center; justify-content: center; gap: 1cqw; }
-  .digit { height: 10cqw; width: 6cqw; }
-  .time .digit { height: 20cqw; width: 12cqw; }
-  .time { gap: 1.6cqw; }
-  .sec { display: flex; gap: 1cqw; align-self: flex-end; }
-  .time .sec .digit { height: 9cqw; width: 5.4cqw; }
-  .digit path { fill: currentColor; opacity: .18; transition: opacity .15s; }
-  .digit path.on { opacity: 1; filter: drop-shadow(0 0 2px currentColor); }
-  .unit { font-size: 4.4cqw; margin: 0 0cqw 0 .2cqw; font-weight: 700; }
-  .week { gap: 1cqw; margin-left: 3cqw; }
-  .week span { opacity: .1; }
-  .week span.on { opacity: 1; text-shadow: 0 0 .8cqw currentColor; }
-  .colon { width: 3cqw; height: 20cqw; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5cqw;filter: drop-shadow(0 0 2px currentColor)}
-  .colon i { width: 1.8cqw; height: 1.8cqw; background: currentColor; display: block; }
+  .row { display: flex; align-items: center; justify-content: center; }
+  .row > * + * { margin-left: 1rem; }
+  #date { margin-bottom: 3.5rem; }
+  .digit { display: block; height: 10rem; width: 6rem; }
+  .time .digit { height: 20rem; width: 12rem; }
+  .time > * + * { margin-left: 1.6rem; }
+  .sec { display: flex; align-self: flex-end; }
+  .sec > * + * { margin-left: 1rem; }
+  .time .sec .digit { height: 9rem; width: 5.4rem; }
+  .digit path { fill: currentColor; opacity: .07; }
+  .digit path.on { opacity: 1; }
+  .unit { font-size: 4.4rem; font-weight: 700; }
+  .row > .week { margin-left: 3rem; }
+  .week > * + * { margin-left: 1rem; }
+  .colon { width: 3rem; height: 20rem; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .colon i { width: 1.8rem; height: 1.8rem; background: currentColor; display: block; margin: 2.5rem 0; }
 </style>
 </head>
 <body>
@@ -43,7 +39,15 @@
 </div>
 <script>
 (function () {
-  // 各数字の点灯セグメント (a b c d e f g)
+  // 画面サイズに合わせて16:9領域をフィット
+  function fit() {
+    var w = Math.min(window.innerWidth, window.innerHeight * 16 / 9);
+    document.documentElement.style.fontSize = (w / 100) + "px";
+  }
+  fit();
+  window.addEventListener("resize", fit);
+  window.addEventListener("orientationchange", fit);
+
   var MAP = ["abcdef","bc","abdeg","abcdg","bcfg","acdfg","acdefg","abc","abcdefg","abcdfg"];
   var PATHS = {
     a: "M12 10 L18 4 L42 4 L48 10 L42 16 L18 16 Z",
@@ -71,10 +75,11 @@
     return {
       set: function (n) {
         var on = MAP[n];
-        for (var k in segs) segs[k].classList.toggle("on", on.indexOf(k) >= 0);
+        for (var k in segs) segs[k].setAttribute("class", on.indexOf(k) >= 0 ? "on" : "");
       }
     };
   }
+
   // 16セグメント
   var P16 = {
     a1: "M12 10 L18 4 L28 4 L28 16 L18 16 Z",
@@ -113,10 +118,11 @@
     return {
       set: function (ch) {
         var on = (M16[ch] || "").split(" ");
-        for (var k in segs) segs[k].classList.toggle("on", on.indexOf(k) >= 0);
+        for (var k in segs) segs[k].setAttribute("class", on.indexOf(k) >= 0 ? "on" : "");
       }
     };
   }
+
   function unit(parent, text) {
     var s = document.createElement("span");
     s.className = "unit"; s.textContent = text;
@@ -136,8 +142,8 @@
   var dateEl = document.getElementById("date");
   var timeEl = document.getElementById("time");
 
-  var M = group(dateEl, 2); unit(dateEl, "/");
-  var D = group(dateEl, 2); unit(dateEl, "");
+  var M = group(dateEl, 2); unit(dateEl, "月");
+  var D = group(dateEl, 2); unit(dateEl, "日");
 
   var weekEl = document.createElement("div"); weekEl.className = "row week"; dateEl.appendChild(weekEl);
   var DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -151,7 +157,7 @@
   function put(arr, v) {
     var s = String(v);
     while (s.length < arr.length) s = "0" + s;
-    arr.forEach(function (d, i) { d.set(+s[i]); });
+    arr.forEach(function (d, i) { d.set(+s.charAt(i)); });
   }
 
   var stage = document.getElementById("stage");
@@ -163,12 +169,12 @@
     put(H, t.getHours()); put(Mi, t.getMinutes()); put(S, t.getSeconds());
     if (t.getDay() !== lastWd) {
       lastWd = t.getDay();
-      W.forEach(function (c, i) { c.set(DAYS[lastWd][i]); });
+      W.forEach(function (c, i) { c.set(DAYS[lastWd].charAt(i)); });
     }
     if (t.getHours() !== lastHour) {
       lastHour = t.getHours();
       // 時間ごとに色相を変更 (24色)
-      stage.style.setProperty("--c", "hsl(" + (lastHour * 15) + " 100% 55%)");
+      stage.style.color = "hsl(" + (lastHour * 15) + ", 100%, 55%)";
     }
   }
   tick();
